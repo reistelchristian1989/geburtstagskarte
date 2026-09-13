@@ -123,34 +123,21 @@
         </div>
     </div>
 
-    <!-- JavaScript API & Kryptografisch gesicherter Admin-Schutz -->
+    <!-- JavaScript API & Funktionierender Admin-Check -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
         
-        // Hier steht KEIN Passwort im Klartext, sondern nur der kryptografische SHA-256 Hash von "C@R66289rc!?"
-        const ADMIN_HASH = "8f78ae0737c3755333f81e36fa78ac546df07cd4af2438ea2356c3f68a3068e1";
-
-        async function hashString(string) {
-            const utf8 = new TextEncoder().encode(string);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        async function unlockAdmin() {
+        // Zu 100% funktionierender Code-Check
+        function unlockAdmin() {
             let code = prompt("Bitte Admin-Zugangscode eingeben:");
-            if (!code) return;
-            
-            // Berechnet den Hash der Eingabe und vergleicht ihn
-            let inputHash = await hashString(code);
-            if (inputHash === ADMIN_HASH) {
+            if (code === "C@R66289rc!?") {
                 sessionStorage.setItem("isAdmin", "true");
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
                 alert("Admin-Modus erfolgreich aktiviert!");
                 location.reload();
-            } else {
+            } else if (code !== null) {
                 alert("Falscher Code!");
             }
         }
