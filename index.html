@@ -103,47 +103,55 @@
         </div>
     </div>
 
-    <!-- Zuverlässige JavaScript-Netzwerk-Hilfsfunktionen -->
+    <!-- JavaScript-Brücke für jsonbin.io -->
     <script>
-        const API_URL = "https://api.npoint.io/ea85f79b1d069540e752";
+        const BIN_ID = "6aa640e9ffd5d16053008348";
+        const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
+        
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         async function apiGetWishes() {
-            const res = await fetch(API_URL);
-            return await res.json();
+            const res = await fetch(API_URL, {
+                headers: { "X-Master-Key": API_KEY }
+            });
+            const json = await res.json();
+            return json.record; 
         }
 
         async function apiSaveWish(newText) {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            let wishes = data.wishes || [];
+            const res = await fetch(API_URL, {
+                headers: { "X-Master-Key": API_KEY }
+            });
+            const json = await res.json();
+            let wishes = json.record.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
             wishes.unshift({ text: newText });
 
             await fetch(API_URL, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Master-Key": API_KEY
+                },
                 body: JSON.stringify({ wishes: wishes })
             });
             return true;
         }
     </script>
 
-    <!-- Python-Logik, die die JS-Helfer sicher nutzt -->
+    <!-- Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
 import asyncio
-import json
 
 async def load_wishes():
     container = document.getElementById("wishesContent")
     if not container:
         return
     try:
-        # Aufruf der nativen JS-Get-Funktion
         data = await js.apiGetWishes()
-        # PyScript wandelt das JS-Objekt in ein Python-kompatibles Format um
         wishes_list = data.get("wishes", []) if hasattr(data, "get") else []
         
         container.innerHTML = ""
@@ -154,7 +162,6 @@ async def load_wishes():
         for wish in wishes_list:
             new_div = document.createElement("div")
             new_div.className = "wish-item"
-            # Text sicher auslesen
             text = wish.get('text', '') if hasattr(wish, "get") else str(wish)
             new_div.innerText = f"🎂 {text}"
             container.appendChild(new_div)
@@ -170,9 +177,8 @@ async def add_wish(event):
 
     if wish_text:
         try:
-            # Aufruf der sicheren JS-Save-Funktion
             await js.apiSaveWish(wish_text)
-            js.alert("Glückwunsch erfolgreich für alle gespeichert! 🎉")
+            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
             input_box.value = ""
             await load_wishes()
         except Exception as e:
