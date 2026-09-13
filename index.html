@@ -34,7 +34,6 @@
             flex-direction: column;
         }
 
-        /* Container der das Video zwingend im Querformat hält via Drehung bei Bedarf */
         .video-wrapper {
             position: relative;
             width: 85vw;
@@ -52,7 +51,6 @@
             object-fit: cover;
         }
 
-        /* Der Button der nach 7 Sekunden erscheint */
         #skipToIntroBtn {
             position: absolute;
             bottom: 20px;
@@ -66,7 +64,7 @@
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: none; /* Anfänglich unsichtbar */
+            display: none; 
             z-index: 10000;
             animation: pulseBtn 1.5s infinite;
         }
@@ -77,7 +75,7 @@
             100% { transform: scale(1); }
         }
 
-        /* --- HAUPTKARTE (Anfangs versteckt, bis Intro vorbei oder übersprungen) --- */
+        /* --- HAUPTKARTE --- */
         #mainCardContainer {
             display: none;
             width: 100%;
@@ -210,14 +208,12 @@
     <!-- INTRO-BEREICH MIT VIDEO -->
     <div id="introScreen">
         <div class="video-wrapper">
-            <!-- Trage hier den Pfad zu deinem Video ein (z.B. assets/video/papa.mp4) -->
-            <video id="introVideo" src="assets/video/intro.mp4" playsinline autoplay muted></video>
+            <video id="introVideo" src="assets/video/intro.mp4" playsinline autoplay muted controls></video>
         </div>
-        <!-- Der Button der nach 7 Sekunden erscheint -->
         <button id="skipToIntroBtn" onclick="goToMainCard()">Zur Hauptkarte ➔</button>
     </div>
 
-    <!-- HAUPTKARTE (Gästebuch & Radio) -->
+    <!-- HAUPTKARTE -->
     <div id="mainCardContainer">
         <div class="card">
             <div class="header-container">
@@ -257,7 +253,6 @@
         </div>
     </div>
 
-    <!-- JavaScript Steuerung für Intro & Funktionen -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
@@ -266,21 +261,28 @@
         let currentActiveAudio = null;
         let currentActiveBtn = null;
 
-        // Timer für das Einblenden des Buttons nach 7 Sekunden
         const videoElement = document.getElementById('introVideo');
-        
+        const skipBtn = document.getElementById('skipToIntroBtn');
+
+        // Fallback: Button nach 5 Sekunden im Web sicher anzeigen
+        setTimeout(() => {
+            skipBtn.style.display = 'block';
+        }, 5000);
+
         videoElement.addEventListener('timeupdate', function() {
             if (videoElement.currentTime >= 7) {
-                document.getElementById('skipToIntroBtn').style.display = 'block';
+                skipBtn.style.display = 'block';
             }
         });
 
-        // Falls das Video kürzer als 7 Sekunden ist, Button direkt am Ende anzeigen
         videoElement.addEventListener('ended', function() {
-            document.getElementById('skipToIntroBtn').style.display = 'block';
+            skipBtn.style.display = 'block';
         });
 
-        // Funktion zum Wechseln zur Hauptkarte
+        videoElement.addEventListener('error', function() {
+            skipBtn.style.display = 'block';
+        });
+
         function goToMainCard() {
             videoElement.pause();
             document.getElementById('introScreen').style.display = 'none';
