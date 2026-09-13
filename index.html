@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <!-- JavaScript-Brücke -->
+<!-- JavaScript-Brücke (liefert nur noch reine Text-Strings) -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
@@ -116,7 +116,15 @@
                 });
                 const json = await res.json();
                 let wishes = json.record?.wishes || json.wishes || [];
-                return Array.isArray(wishes) ? wishes : [];
+                
+                // WICHTIG: Wir wandeln ALLES sofort in reine Text-Strings um!
+                // Egal ob vorher Objekt, Array oder String drin stand.
+                return wishes.map(item => {
+                    if (typeof item === 'object' && item !== null) {
+                        return item.text || item.wish || JSON.stringify(item);
+                    }
+                    return String(item);
+                });
             } catch (err) {
                 console.error("Fehler beim Laden:", err);
                 return [];
@@ -131,7 +139,7 @@
             let wishes = json.record?.wishes || json.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
-            // Speicherung als sauberes Objekt mit dem "text"-Schlüssel
+            // Auch hier als sauberen String oder einfaches Objekt abspeichern
             wishes.unshift({ text: newText });
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -146,7 +154,7 @@
         }
     </script>
 
-    <!-- Python-Logik -->
+    <!-- Python-Logik (arbeitet nur mit reinen Texten) -->
     <script type="py">
 from pyscript import document
 import js
@@ -157,33 +165,20 @@ async def load_wishes():
     if not container:
         return
     try:
+        # JS liefert bereits eine Liste aus reinen Text-Strings
         js_wishes = await js.apiGetWishes()
         container.innerHTML = ""
         
         wishes_list = [item for item in js_wishes]
         
         if not wishes_list:
-            container.innerHTML = "<p style='color: #fff; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
+            container.innerHTML = "<p style='color: #000; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
 
-        for wish in wishes_list:
+        for text in wishes_list:
             new_div = document.createElement("div")
             new_div.className = "wish-item"
-            
-            # Text sicher aus dem Objekt auslesen
-            text = ""
-            try:
-                if hasattr(wish, "get"):
-                    text = wish.get('text', '')
-                elif isinstance(wish, dict):
-                    text = wish.get('text', '')
-                else:
-                    # Falls es doch ein reiner String ist
-                    text = str(wish)
-            except:
-                text = str(wish)
-                
-            new_div.innerText = f"🎂 {text}"
+            new_div.innerText = f"🎂 {str(text)}"
             container.appendChild(new_div)
             
     except Exception as e:
