@@ -115,19 +115,24 @@
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
-            return json.record; 
+            // Fallback, falls json.record direkt oder verschachtelt kommt
+            return json.record || json; 
         }
 
         async function apiSaveWish(newText) {
+            // 1. Aktuelle Daten holen
             const res = await fetch(API_URL, {
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
-            let wishes = json.record.wishes || [];
+            let currentData = json.record || json;
+            let wishes = currentData.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
+            // 2. Neuen Wunsch vorne anhängen
             wishes.unshift({ text: newText });
 
+            // 3. Zurückschicken (jsonbin.io erwartet das direkt im Body)
             await fetch(API_URL, {
                 method: "PUT",
                 headers: {
@@ -140,7 +145,7 @@
         }
     </script>
 
-    <!-- Python-Logik -->
+   <!-- Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
@@ -152,7 +157,12 @@ async def load_wishes():
         return
     try:
         data = await js.apiGetWishes()
-        wishes_list = data.get("wishes", []) if hasattr(data, "get") else []
+        # Universelles Auslesen der Wünsche-Liste
+        wishes_list = []
+        if hasattr(data, "get"):
+            wishes_list = data.get("wishes", [])
+        elif isinstance(data, dict):
+            wishes_list = data.get("wishes", [])
         
         container.innerHTML = ""
         if not wishes_list:
@@ -162,7 +172,16 @@ async def load_wishes():
         for wish in wishes_list:
             new_div = document.createElement("div")
             new_div.className = "wish-item"
-            text = wish.get('text', '') if hasattr(wish, "get") else str(wish)
+            
+            # Text sicher extrahieren
+            text = ""
+            if hasattr(wish, "get"):
+                text = wish.get('text', '')
+            elif isinstance(wish, dict):
+                text = wish.get('text', '')
+            else:
+                text = str(wish)
+                
             new_div.innerText = f"🎂 {text}"
             container.appendChild(new_div)
             
@@ -177,10 +196,29 @@ async def add_wish(event):
 
     if wish_text:
         try:
+            # 1. In der Cloud speichern
             await js.apiSaveWish(wish_text)
-            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
+            
+            # 2. Eingabefeld leeren
             input_box.value = ""
-            await load_wishes()
+            
+            # 3. Sofort visuell zur Liste hinzufügen (Performance-Boost)
+            container = document.getElementById("wishesContent")
+            # Falls vorher "Noch keine Wünsche" dastand, leeren
+            if container.innerHTML.includes("Noch keine Wünsche"):
+                container.innerHTML = ""
+                
+            new_div = document.createElement("div")
+            new_div.className = "wish-item"
+            new_div.innerText = f"🎂 {wish_text}"
+            
+            # Ganz oben einfügen (prepend-Effekt)
+            if container.firstChild:
+                container.insertBefore(new_div, container.firstChild)
+            else:
+                container.appendChild(new_div)
+                
+            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
         except Exception as e:
             js.alert(f"Fehler beim Speichern: {e}")
 
