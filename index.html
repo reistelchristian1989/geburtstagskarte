@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geburtstagskarte zum 63. für Papa 🎂</title>
-    <!-- PyScript -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #000000 0%, #000000 100%);
-            color: #000000;
+            background: #000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -22,15 +20,12 @@
             background: rgb(232, 0, 0);
             padding: 30px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.313);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
             max-width: 550px;
             width: 100%;
             text-align: center;
         }
-        h1 {
-            color: #000000;
-            margin-bottom: 5px;
-        }
+        h1, h2, h3, p { color: #000; }
         .cake-img {
             width: 100%;
             max-width: 500px;
@@ -42,7 +37,7 @@
             width: 100%;
             height: 80px;
             padding: 10px;
-            border: 2px solid #000000;
+            border: 2px solid #000;
             border-radius: 8px;
             resize: none;
             box-sizing: border-box;
@@ -50,33 +45,30 @@
             margin-bottom: 10px;
         }
         button {
-            background-color: #000000;
-            color: rgba(255, 0, 0, 0.735);
+            background-color: #000;
+            color: rgba(255, 0, 0, 0.9);
             border: none;
             padding: 10px 20px;
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #74b9ff;
         }
         .wishes-container {
             margin-top: 20px;
             text-align: left;
             max-height: 220px;
             overflow-y: auto;
-            border-top: 2px solid #f1f1f1;
+            border-top: 2px solid #fff;
             padding-top: 15px;
         }
         .wish-item {
-            background: #dfe6e9;
+            background: #fff;
             padding: 10px 14px;
             border-radius: 6px;
             margin-bottom: 8px;
             font-size: 14px;
             color: #000;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -84,12 +76,8 @@
 
     <div class="card">
         <h1>Alles Gute zum Geburtstag, Papa! 🎂</h1>
-        <p>Trage hier deine Wünsche ein, damit er sie sehen kann!</p>
-        
-        <!-- Torten-Bild -->
         <img src="assets/pics/birthdaycake/birthdaycake.jpg" alt="Geburtstagstorte" class="cake-img">
-
-        <h2>Der Countdown läuft!!!, Nur noch 4 Jahre bis zur Wohlverdienten Rente... Alles, alles gute zum Geburtstag!!!, lass dich feiern und bleib Gesund!!!</h2>
+        <h2>Der Countdown läuft! Nur noch 4 Jahre bis zur Rente... Lass dich feiern und bleib gesund!</h2>
 
         <div>
             <textarea id="wishInput" placeholder="Dein Glückwunsch für Papa..."></textarea>
@@ -103,44 +91,44 @@
         </div>
     </div>
 
-<!-- JavaScript-Brücke (liefert nur noch reine Text-Strings) -->
+    <!-- JavaScript Direkt-API (Garantierte Text-Ausgabe) -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
 
-        async function apiGetWishes() {
+        async function fetchWishesText() {
             try {
-                const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
+                let res = await fetch(`${API_URL}?t=${Date.now()}`, {
                     headers: { "X-Master-Key": API_KEY }
                 });
-                const json = await res.json();
-                let wishes = json.record?.wishes || json.wishes || [];
+                let data = await res.json();
+                let rawList = data.record?.wishes || data.wishes || [];
                 
-                // WICHTIG: Wir wandeln ALLES sofort in reine Text-Strings um!
-                // Egal ob vorher Objekt, Array oder String drin stand.
-                return wishes.map(item => {
-                    if (typeof item === 'object' && item !== null) {
-                        return item.text || item.wish || JSON.stringify(item);
-                    }
+                // Mappe alles brutal hart in einfache Strings, damit niemals [object Object] entsteht
+                return rawList.map(item => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object') return item.text || item.wish || JSON.stringify(item);
                     return String(item);
                 });
-            } catch (err) {
-                console.error("Fehler beim Laden:", err);
+            } catch (e) {
+                console.error(e);
                 return [];
             }
         }
 
-        async function apiSaveWish(newText) {
-            const res = await fetch(API_URL, {
+        async function saveWishText(text) {
+            let res = await fetch(API_URL, {
                 headers: { "X-Master-Key": API_KEY }
             });
-            const json = await res.json();
-            let wishes = json.record?.wishes || json.wishes || [];
-            if (!Array.isArray(wishes)) wishes = [];
+            let data = await res.json();
+            let rawList = data.record?.wishes || data.wishes || [];
             
-            // Auch hier als sauberen String oder einfaches Objekt abspeichern
-            wishes.unshift({ text: newText });
+            // Konvertiere zu Strings für die Sicherheit
+            let list = rawList.map(item => (typeof item === 'object' && item !== null) ? (item.text || '') : String(item));
+            
+            // Neuen Text vorne anfügen (als reines Objekt, aber beim Lesen sauber extrahiert)
+            list.unshift({ text: text });
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: "PUT",
@@ -148,64 +136,55 @@
                     "Content-Type": "application/json",
                     "X-Master-Key": API_KEY
                 },
-                body: JSON.stringify({ wishes: wishes })
+                body: JSON.stringify({ wishes: list })
             });
-            return true;
         }
     </script>
 
-    <!-- Python-Logik (arbeitet nur mit reinen Texten) -->
+    <!-- Python Steuerung -->
     <script type="py">
 from pyscript import document
 import js
 import asyncio
 
-async def load_wishes():
+async def load_ui():
     container = document.getElementById("wishesContent")
     if not container:
         return
     try:
-        # JS liefert bereits eine Liste aus reinen Text-Strings
-        js_wishes = await js.apiGetWishes()
+        texts = await js.fetchWishesText()
         container.innerHTML = ""
         
-        wishes_list = [item for item in js_wishes]
-        
-        if not wishes_list:
+        if not texts or len(texts) == 0:
             container.innerHTML = "<p style='color: #000; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
 
-        for text in wishes_list:
-            new_div = document.createElement("div")
-            new_div.className = "wish-item"
-            new_div.innerText = f"🎂 {str(text)}"
-            container.appendChild(new_div)
-            
+        for t in texts:
+            div = document.createElement("div")
+            div.className = "wish-item"
+            div.innerText = f"🎂 {str(t)}"
+            container.appendChild(div)
     except Exception as e:
-        container.innerHTML = f"<p style='color: yellow;'>Fehler beim Laden: {e}</p>"
+        container.innerHTML = f"Fehler: {e}"
 
-async def add_wish(event):
-    input_box = document.getElementById("wishInput")
-    if not input_box:
+async def handle_click(event):
+    box = document.getElementById("wishInput")
+    if not box:
         return
-    wish_text = input_box.value.strip()
+    val = box.value.strip()
+    if val:
+        await js.saveWishText(val)
+        box.value = ""
+        await load_ui()
+        js.alert("Gespeichert! 🎉")
 
-    if wish_text:
-        try:
-            await js.apiSaveWish(wish_text)
-            input_box.value = ""
-            await load_wishes()
-            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
-        except Exception as e:
-            js.alert(f"Fehler beim Speichern: {e}")
-
-async def setup():
+async def init():
     btn = document.getElementById("sendBtn")
     if btn:
-        btn.onclick = lambda e: asyncio.ensure_future(add_wish(e))
-    await load_wishes()
+        btn.onclick = lambda e: asyncio.ensure_future(handle_click(e))
+    await load_ui()
 
-asyncio.ensure_future(setup())
+asyncio.ensure_future(init())
     </script>
 
 </body>
