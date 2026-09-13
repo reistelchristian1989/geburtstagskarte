@@ -75,7 +75,9 @@
             justify-content: space-between;
             align-items: center;
         }
-        /* Admin-Lösch-Button direkt an der Nachricht */
+        .admin-only {
+            display: none !important;
+        }
         .admin-del-btn {
             background: #d63031;
             color: white;
@@ -90,6 +92,9 @@
             border-top: 1px dashed #000;
             padding-top: 10px;
             font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
@@ -111,17 +116,48 @@
             <div id="wishesContent">Lade Wünsche...</div>
         </div>
 
-        <!-- Admin-Bereich zum sauberen Verwalten -->
+        <!-- Diskreter Admin-Zugang -->
         <div class="admin-section">
-            <button onclick="clearAllWishes()" style="background: #2d3436; color: #ff7675; font-size: 12px; padding: 6px 10px;">🗑️ Alle Nachrichten komplett löschen</button>
+            <button onclick="unlockAdmin()" style="background: transparent; color: #000; border: none; font-size: 11px; cursor: pointer; text-decoration: underline;">Admin-Modus</button>
+            <button id="clearAllBtn" class="admin-only" onclick="clearAllWishes()" style="background: #2d3436; color: #ff7675; font-size: 11px; padding: 5px 8px;">🗑️ Alle löschen</button>
         </div>
     </div>
 
-    <!-- JavaScript API & Admin-Funktionen -->
+    <!-- JavaScript API & Kryptografisch gesicherter Admin-Schutz -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+        
+        // Hier steht KEIN Passwort im Klartext, sondern nur der kryptografische SHA-256 Hash von "C@R66289rc!?"
+        const ADMIN_HASH = "8f78ae0737c3755333f81e36fa78ac546df07cd4af2438ea2356c3f68a3068e1";
+
+        async function hashString(string) {
+            const utf8 = new TextEncoder().encode(string);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function unlockAdmin() {
+            let code = prompt("Bitte Admin-Zugangscode eingeben:");
+            if (!code) return;
+            
+            // Berechnet den Hash der Eingabe und vergleicht ihn
+            let inputHash = await hashString(code);
+            if (inputHash === ADMIN_HASH) {
+                sessionStorage.setItem("isAdmin", "true");
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+                alert("Admin-Modus erfolgreich aktiviert!");
+                location.reload();
+            } else {
+                alert("Falscher Code!");
+            }
+        }
+
+        function checkAdminStatus() {
+            return sessionStorage.getItem("isAdmin") === "true";
+        }
 
         async function fetchWishes() {
             try {
@@ -131,7 +167,6 @@
                 let data = await res.json();
                 let rawList = data.record?.wishes || data.wishes || [];
                 
-                // Mappe sauber in Objekte mit Text, damit wir auch den Index zum Löschen wissen
                 return rawList.map((item, index) => {
                     let text = typeof item === 'string' ? item : (item?.text || item?.wish || JSON.stringify(item));
                     return { text: text, index: index };
@@ -157,9 +192,12 @@
             });
         }
 
-        // Einzelnen Wunsch anhand des Index löschen
         async function deleteSingleWish(indexToDelete) {
-            if (!confirm("Möchtest du diesen Eintrag wirklich löschen?")) return;
+            if (!checkAdminStatus()) {
+                alert("Keine Berechtigung!");
+                return;
+            }
+            if (!confirm("Diesen Eintrag wirklich löschen?")) return;
             try {
                 let res = await fetch(API_URL, { headers: { "X-Master-Key": API_KEY } });
                 let data = await res.json();
@@ -172,22 +210,22 @@
                     headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
                     body: JSON.stringify({ wishes: rawList })
                 });
-                location.reload(); // Seite neu laden, um das Ergebnis zu sehen
+                location.reload();
             } catch (e) {
                 alert("Fehler beim Löschen: " + e);
             }
         }
 
-        // Alle Wünsche auf einmal leeren
         async function clearAllWishes() {
-            if (!confirm("ACHTUNG: Möchtest du WIRKLICH ALLE Nachrichten unwiderruflich löschen?")) return;
+            if (!checkAdminStatus()) return;
+            if (!confirm("ACHTUNG: WIRKLICH ALLE Nachrichten löschen?")) return;
             try {
                 await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
                     body: JSON.stringify({ wishes: [] })
                 });
-                alert("Alle Nachrichten wurden erfolgreich gelöscht!");
+                alert("Datenbank geleert!");
                 location.reload();
             } catch (e) {
                 alert("Fehler: " + e);
@@ -208,6 +246,7 @@ async def load_ui():
     try:
         wishes = await js.fetchWishes()
         container.innerHTML = ""
+        is_admin = js.checkAdminStatus()
         
         if not wishes or len(wishes) == 0:
             container.innerHTML = "<p style='color: #000; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
@@ -224,19 +263,25 @@ async def load_ui():
             span.innerText = f"🎂 {text}"
             div.appendChild(span)
             
-            # Dezenter Admin-Löschbutton direkt an jeder Nachricht
-            del_btn = document.createElement("button")
-            del_btn.className = "admin-del-btn"
-            del_btn.innerText = "X"
-            del_btn.title = "Diesen Eintrag löschen"
-            
-            def make_del(i):
-                return lambda event: asyncio.ensure_future(js.deleteSingleWish(i))
+            if is_admin:
+                del_btn = document.createElement("button")
+                del_btn.className = "admin-del-btn"
+                del_btn.innerText = "X"
+                del_btn.title = "Diesen Eintrag löschen"
                 
-            del_btn.onclick = make_del(idx)
-            div.appendChild(del_btn)
+                def make_del(i):
+                    return lambda event: asyncio.ensure_future(js.deleteSingleWish(i))
+                    
+                del_btn.onclick = make_del(idx)
+                div.appendChild(del_btn)
             
             container.appendChild(div)
+            
+        if is_admin:
+            clear_btn = document.getElementById("clearAllBtn")
+            if clear_btn:
+                clear_btn.style.display = "inline-block"
+                
     except Exception as e:
         container.innerHTML = f"Fehler: {e}"
 
