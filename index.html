@@ -96,17 +96,74 @@
             justify-content: space-between;
             align-items: center;
         }
+        /* Container für Überschrift und Radio-Buttons oben */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .header-container h1 {
+            margin: 0;
+            text-align: left;
+            font-size: 24px;
+        }
+        /* Box für die Buttons untereinander rechts */
+        .radio-buttons-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        /* Kleine runde Buttons */
+        .radio-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: #e80000;
+            color: white;
+            border: 2px solid #000;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+        .radio-btn:hover {
+            background-color: #27ae60;
+        }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h1>Alles Gute zum Geburtstag, Papa! 🎂</h1>
+        <!-- Header mit Überschrift links und Radio-Buttons rechts untereinander -->
+        <div class="header-container">
+            <h1>Alles Gute zum Geburtstag, Papa! 🎂</h1>
+            <div class="radio-buttons-wrapper">
+                <!-- 1. Liga Radio Button -->
+                <button id="radio1Btn" class="radio-btn" onclick="toggleRadio('liga1')" title="1. Liga Konferenz an/aus">
+                    ⚽1
+                </button>
+                <!-- 2. Liga Radio Button -->
+                <button id="radio2Btn" class="radio-btn" onclick="toggleRadio('liga2')" title="2. Liga Konferenz an/aus">
+                    ⚽2
+                </button>
+            </div>
+        </div>
+
         <img src="assets/pics/birthdaycake/birthdaycake.jpg" alt="Geburtstagstorte" class="cake-img">
         <h2>Der Countdown läuft! Nur noch 4 Jahre bis zur Rente... Lass dich feiern und bleib gesund!</h2>
 
+        <!-- Unsichtbare Audio-Streams für Sportschau Konferenzen -->
+        <audio id="streamLiga1" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga1konferenz/mp3/128/stream.mp3" preload="none"></audio>
+        <audio id="streamLiga2" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga2konferenz/mp3/128/stream.mp3" preload="none"></audio>
+
         <div>
-            <textarea id="wishInput" placeholder="Dein Glückwunsch für Papa..."></textarea>
+            <textarea id="wishInput" placeholder="Deine Glückwünsche für Peter_Werner R. (Papa)"></textarea>
             <br>
             <button id="sendBtn">Glückwunsch abschicken</button>
         </div>
@@ -123,13 +180,45 @@
         </div>
     </div>
 
-    <!-- JavaScript API & Funktionierender Admin-Check -->
+    <!-- JavaScript API & Radio / Admin Steuerung -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
         
-        // Zu 100% funktionierender Code-Check
+        let currentActiveAudio = null;
+        let currentActiveBtn = null;
+
+        function toggleRadio(liga) {
+            let audioId = liga === 'liga1' ? 'streamLiga1' : 'streamLiga2';
+            let btnId = liga === 'liga1' ? 'radio1Btn' : 'radio2Btn';
+            
+            let audio = document.getElementById(audioId);
+            let btn = document.getElementById(btnId);
+
+            if (currentActiveAudio && currentActiveAudio !== audio) {
+                currentActiveAudio.pause();
+                currentActiveAudio.currentTime = 0;
+                if (currentActiveBtn) currentActiveBtn.style.backgroundColor = "#e80000";
+            }
+
+            if (audio.paused) {
+                audio.play().then(() => {
+                    btn.style.backgroundColor = "#27ae60"; // Grün wenn aktiv
+                    currentActiveAudio = audio;
+                    currentActiveBtn = btn;
+                }).catch(e => {
+                    alert("Stream konnte nicht gestartet werden (evtl. sendet die Konferenz gerade nicht live).");
+                });
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+                btn.style.backgroundColor = "#e80000"; // Wieder Rot
+                currentActiveAudio = null;
+                currentActiveBtn = null;
+            }
+        }
+
         function unlockAdmin() {
             let code = prompt("Bitte Admin-Zugangscode eingeben:");
             if (code === "C@R66289rc!?") {
