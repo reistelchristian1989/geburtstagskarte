@@ -144,8 +144,7 @@
             return true;
         }
     </script>
-
-   <!-- Python-Logik -->
+<!-- Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
@@ -157,7 +156,6 @@ async def load_wishes():
         return
     try:
         data = await js.apiGetWishes()
-        # Universelles Auslesen der Wünsche-Liste
         wishes_list = []
         if hasattr(data, "get"):
             wishes_list = data.get("wishes", [])
@@ -173,7 +171,6 @@ async def load_wishes():
             new_div = document.createElement("div")
             new_div.className = "wish-item"
             
-            # Text sicher extrahieren
             text = ""
             if hasattr(wish, "get"):
                 text = wish.get('text', '')
@@ -202,17 +199,17 @@ async def add_wish(event):
             # 2. Eingabefeld leeren
             input_box.value = ""
             
-            # 3. Sofort visuell zur Liste hinzufügen (Performance-Boost)
+            # 3. Sofort visuell zur Liste hinzufügen
             container = document.getElementById("wishesContent")
-            # Falls vorher "Noch keine Wünsche" dastand, leeren
-            if container.innerHTML.includes("Noch keine Wünsche"):
+            
+            # Saubere Python-Prüfung statt JS .includes()
+            if container.innerHTML and "Noch keine Wünsche" in container.innerHTML:
                 container.innerHTML = ""
                 
             new_div = document.createElement("div")
             new_div.className = "wish-item"
             new_div.innerText = f"🎂 {wish_text}"
             
-            # Ganz oben einfügen (prepend-Effekt)
             if container.firstChild:
                 container.insertBefore(new_div, container.firstChild)
             else:
