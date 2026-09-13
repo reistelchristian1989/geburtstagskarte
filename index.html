@@ -119,33 +119,38 @@
     </div>
 
     <!-- JavaScript-Brücke mit Cache-Buster -->
+   <!-- Zuverlässige JavaScript-Brücke -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
-        
-        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
 
         async function apiGetWishes() {
-            // Der Parameter ?t=... zwingt den Browser, IMMER die echten Daten aus der Cloud zu holen
-            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
-                headers: { "X-Master-Key": API_KEY }
-            });
-            const json = await res.json();
-            return json.record || json; 
+            try {
+                const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
+                    headers: { "X-Master-Key": API_KEY }
+                });
+                const json = await res.json();
+                let wishes = json.record?.wishes || json.wishes || [];
+                // Konvertiere absolut sicher in ein reines JS-Array von Strings/Objekten
+                return Array.isArray(wishes) ? wishes : [];
+            } catch (err) {
+                console.error("Fehler beim Laden:", err);
+                return [];
+            }
         }
 
         async function apiSaveWish(newText) {
-            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
+            const res = await fetch(API_URL, {
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
-            let currentData = json.record || json;
-            let wishes = currentData.wishes || [];
+            let wishes = json.record?.wishes || json.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
             wishes.unshift({ text: newText });
 
-            await fetch(API_URL, {
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -157,17 +162,16 @@
         }
 
         async function apiDeleteWish(index) {
-            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
+            const res = await fetch(API_URL, {
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
-            let currentData = json.record || json;
-            let wishes = currentData.wishes || [];
+            let wishes = json.record?.wishes || json.wishes || [];
             
             if (Array.isArray(wishes) && wishes[index] !== undefined) {
                 wishes.splice(index, 1);
 
-                await fetch(API_URL, {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -181,7 +185,7 @@
         }
     </script>
 
-    <!-- Python-Logik -->
+    <!-- Saubere Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
@@ -192,14 +196,13 @@ async def load_wishes():
     if not container:
         return
     try:
-        data = await js.apiGetWishes()
-        wishes_list = []
-        if hasattr(data, "get"):
-            wishes_list = data.get("wishes", [])
-        elif isinstance(data, dict):
-            wishes_list = data.get("wishes", [])
-        
+        # JS-Funktion liefert ein sauberes Array
+        js_wishes = await js.apiGetWishes()
         container.innerHTML = ""
+        
+        # In Python-Liste umwandeln
+        wishes_list = [item for item in js_wishes]
+        
         if not wishes_list:
             container.innerHTML = "<p style='color: #fff; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
@@ -208,12 +211,16 @@ async def load_wishes():
             new_div = document.createElement("div")
             new_div.className = "wish-item"
             
+            # Text auslesen
             text = ""
-            if hasattr(wish, "get"):
-                text = wish.get('text', '')
-            elif isinstance(wish, dict):
-                text = wish.get('text', '')
-            else:
+            try:
+                if hasattr(wish, "get"):
+                    text = wish.get('text', '')
+                elif isinstance(wish, dict):
+                    text = wish.get('text', '')
+                else:
+                    text = str(wish)
+            except:
                 text = str(wish)
                 
             text_span = document.createElement("span")
