@@ -103,29 +103,48 @@
         </div>
     </div>
 
-    <!-- Echte Python-Logik mit PyScript -->
+    <!-- Zuverlässige JavaScript-Netzwerk-Hilfsfunktionen -->
+    <script>
+        const API_URL = "https://api.npoint.io/ea85f79b1d069540e752";
+
+        async function apiGetWishes() {
+            const res = await fetch(API_URL);
+            return await res.json();
+        }
+
+        async function apiSaveWish(newText) {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            let wishes = data.wishes || [];
+            if (!Array.isArray(wishes)) wishes = [];
+            
+            wishes.unshift({ text: newText });
+
+            await fetch(API_URL, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wishes: wishes })
+            });
+            return true;
+        }
+    </script>
+
+    <!-- Python-Logik, die die JS-Helfer sicher nutzt -->
     <script type="py">
 from pyscript import document
 import js
 import asyncio
 import json
 
-API_URL = "https://api.npoint.io/ea85f79b1d069540e752"
-
 async def load_wishes():
     container = document.getElementById("wishesContent")
     if not container:
         return
     try:
-        response = await js.window.fetch(API_URL)
-        text_data = await response.text()
-        
-        try:
-            data_py = json.loads(text_data)
-        except:
-            data_py = {}
-            
-        wishes_list = data_py.get("wishes", []) if isinstance(data_py, dict) else []
+        # Aufruf der nativen JS-Get-Funktion
+        data = await js.apiGetWishes()
+        # PyScript wandelt das JS-Objekt in ein Python-kompatibles Format um
+        wishes_list = data.get("wishes", []) if hasattr(data, "get") else []
         
         container.innerHTML = ""
         if not wishes_list:
@@ -135,7 +154,8 @@ async def load_wishes():
         for wish in wishes_list:
             new_div = document.createElement("div")
             new_div.className = "wish-item"
-            text = wish.get('text', '') if isinstance(wish, dict) else str(wish)
+            # Text sicher auslesen
+            text = wish.get('text', '') if hasattr(wish, "get") else str(wish)
             new_div.innerText = f"🎂 {text}"
             container.appendChild(new_div)
             
@@ -150,35 +170,11 @@ async def add_wish(event):
 
     if wish_text:
         try:
-            # 1. Bestehende Daten abrufen
-            response = await js.window.fetch(API_URL)
-            text_data = await response.text()
-            try:
-                data_py = json.loads(text_data)
-            except:
-                data_py = {}
-            
-            wishes_list = data_py.get("wishes", []) if isinstance(data_py, dict) else []
-            if not isinstance(wishes_list, list):
-                wishes_list = []
-            
-            # 2. Neuen Wunsch in Python einfügen
-            wishes_list.insert(0, {"text": wish_text})
-            payload = json.dumps({"wishes": wishes_list})
-            
-            # 3. Über PUT an npoint senden
-            opts = {
-                "method": "PUT",
-                "headers": {"Content-Type": "application/json; charset=UTF-8"},
-                "body": payload
-            }
-            
-            await js.window.fetch(API_URL, opts)
-            
-            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
+            # Aufruf der sicheren JS-Save-Funktion
+            await js.apiSaveWish(wish_text)
+            js.alert("Glückwunsch erfolgreich für alle gespeichert! 🎉")
             input_box.value = ""
             await load_wishes()
-            
         except Exception as e:
             js.alert(f"Fehler beim Speichern: {e}")
 
