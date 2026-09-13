@@ -77,6 +77,21 @@
             margin-bottom: 8px;
             font-size: 14px;
             color: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-btn {
+            background: #ff7675;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #d63031;
         }
     </style>
 </head>
@@ -103,7 +118,7 @@
         </div>
     </div>
 
-    <!-- JavaScript-Brücke für jsonbin.io -->
+    <!-- JavaScript-Brücke mit Cache-Buster -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
@@ -111,17 +126,16 @@
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
         async function apiGetWishes() {
-            const res = await fetch(API_URL, {
+            // Der Parameter ?t=... zwingt den Browser, IMMER die echten Daten aus der Cloud zu holen
+            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
-            // Fallback, falls json.record direkt oder verschachtelt kommt
             return json.record || json; 
         }
 
         async function apiSaveWish(newText) {
-            // 1. Aktuelle Daten holen
-            const res = await fetch(API_URL, {
+            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
                 headers: { "X-Master-Key": API_KEY }
             });
             const json = await res.json();
@@ -129,10 +143,8 @@
             let wishes = currentData.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
-            // 2. Neuen Wunsch vorne anhängen
             wishes.unshift({ text: newText });
 
-            // 3. Zurückschicken (jsonbin.io erwartet das direkt im Body)
             await fetch(API_URL, {
                 method: "PUT",
                 headers: {
@@ -143,8 +155,33 @@
             });
             return true;
         }
+
+        async function apiDeleteWish(index) {
+            const res = await fetch(`${API_URL}?t=${new Date().getTime()}`, {
+                headers: { "X-Master-Key": API_KEY }
+            });
+            const json = await res.json();
+            let currentData = json.record || json;
+            let wishes = currentData.wishes || [];
+            
+            if (Array.isArray(wishes) && wishes[index] !== undefined) {
+                wishes.splice(index, 1);
+
+                await fetch(API_URL, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Master-Key": API_KEY
+                    },
+                    body: JSON.stringify({ wishes: wishes })
+                });
+                return true;
+            }
+            return false;
+        }
     </script>
-<!-- Python-Logik -->
+
+    <!-- Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
@@ -167,7 +204,7 @@ async def load_wishes():
             container.innerHTML = "<p style='color: #fff; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
 
-        for wish in wishes_list:
+        for index, wish in enumerate(wishes_list):
             new_div = document.createElement("div")
             new_div.className = "wish-item"
             
@@ -179,7 +216,26 @@ async def load_wishes():
             else:
                 text = str(wish)
                 
-            new_div.innerText = f"🎂 {text}"
+            text_span = document.createElement("span")
+            text_span.innerText = f"🎂 {text}"
+            new_div.appendChild(text_span)
+
+            del_btn = document.createElement("button")
+            del_btn.className = "delete-btn"
+            del_btn.innerText = "Löschen"
+            
+            def make_delete_handler(idx):
+                async def delete_handler(event):
+                    try:
+                        await js.apiDeleteWish(idx)
+                        await load_wishes()
+                    except Exception as e:
+                        js.alert(f"Fehler beim Löschen: {e}")
+                return delete_handler
+
+            del_btn.onclick = lambda e, idx=index: asyncio.ensure_future(make_delete_handler(idx)(e))
+            new_div.appendChild(del_btn)
+
             container.appendChild(new_div)
             
     except Exception as e:
@@ -193,29 +249,9 @@ async def add_wish(event):
 
     if wish_text:
         try:
-            # 1. In der Cloud speichern
             await js.apiSaveWish(wish_text)
-            
-            # 2. Eingabefeld leeren
             input_box.value = ""
-            
-            # 3. Sofort visuell zur Liste hinzufügen
-            container = document.getElementById("wishesContent")
-            
-            # Saubere Python-Prüfung statt JS .includes()
-            if container.innerHTML and "Noch keine Wünsche" in container.innerHTML:
-                container.innerHTML = ""
-                
-            new_div = document.createElement("div")
-            new_div.className = "wish-item"
-            new_div.innerText = f"🎂 {wish_text}"
-            
-            if container.firstChild:
-                container.insertBefore(new_div, container.firstChild)
-            else:
-                container.appendChild(new_div)
-                
-            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
+            await load_wishes()
         except Exception as e:
             js.alert(f"Fehler beim Speichern: {e}")
 
