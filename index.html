@@ -77,21 +77,6 @@
             margin-bottom: 8px;
             font-size: 14px;
             color: #000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .delete-btn {
-            background: #ff7675;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            font-size: 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .delete-btn:hover {
-            background: #d63031;
         }
     </style>
 </head>
@@ -118,8 +103,7 @@
         </div>
     </div>
 
-    <!-- JavaScript-Brücke mit Cache-Buster -->
-   <!-- Zuverlässige JavaScript-Brücke -->
+    <!-- JavaScript-Brücke -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
@@ -132,7 +116,6 @@
                 });
                 const json = await res.json();
                 let wishes = json.record?.wishes || json.wishes || [];
-                // Konvertiere absolut sicher in ein reines JS-Array von Strings/Objekten
                 return Array.isArray(wishes) ? wishes : [];
             } catch (err) {
                 console.error("Fehler beim Laden:", err);
@@ -148,6 +131,7 @@
             let wishes = json.record?.wishes || json.wishes || [];
             if (!Array.isArray(wishes)) wishes = [];
             
+            // Speicherung als sauberes Objekt mit dem "text"-Schlüssel
             wishes.unshift({ text: newText });
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -160,32 +144,9 @@
             });
             return true;
         }
-
-        async function apiDeleteWish(index) {
-            const res = await fetch(API_URL, {
-                headers: { "X-Master-Key": API_KEY }
-            });
-            const json = await res.json();
-            let wishes = json.record?.wishes || json.wishes || [];
-            
-            if (Array.isArray(wishes) && wishes[index] !== undefined) {
-                wishes.splice(index, 1);
-
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Master-Key": API_KEY
-                    },
-                    body: JSON.stringify({ wishes: wishes })
-                });
-                return true;
-            }
-            return false;
-        }
     </script>
 
-    <!-- Saubere Python-Logik -->
+    <!-- Python-Logik -->
     <script type="py">
 from pyscript import document
 import js
@@ -196,22 +157,20 @@ async def load_wishes():
     if not container:
         return
     try:
-        # JS-Funktion liefert ein sauberes Array
         js_wishes = await js.apiGetWishes()
         container.innerHTML = ""
         
-        # In Python-Liste umwandeln
         wishes_list = [item for item in js_wishes]
         
         if not wishes_list:
             container.innerHTML = "<p style='color: #fff; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
 
-        for index, wish in enumerate(wishes_list):
+        for wish in wishes_list:
             new_div = document.createElement("div")
             new_div.className = "wish-item"
             
-            # Text auslesen
+            # Text sicher aus dem Objekt auslesen
             text = ""
             try:
                 if hasattr(wish, "get"):
@@ -219,30 +178,12 @@ async def load_wishes():
                 elif isinstance(wish, dict):
                     text = wish.get('text', '')
                 else:
+                    # Falls es doch ein reiner String ist
                     text = str(wish)
             except:
                 text = str(wish)
                 
-            text_span = document.createElement("span")
-            text_span.innerText = f"🎂 {text}"
-            new_div.appendChild(text_span)
-
-            del_btn = document.createElement("button")
-            del_btn.className = "delete-btn"
-            del_btn.innerText = "Löschen"
-            
-            def make_delete_handler(idx):
-                async def delete_handler(event):
-                    try:
-                        await js.apiDeleteWish(idx)
-                        await load_wishes()
-                    except Exception as e:
-                        js.alert(f"Fehler beim Löschen: {e}")
-                return delete_handler
-
-            del_btn.onclick = lambda e, idx=index: asyncio.ensure_future(make_delete_handler(idx)(e))
-            new_div.appendChild(del_btn)
-
+            new_div.innerText = f"🎂 {text}"
             container.appendChild(new_div)
             
     except Exception as e:
@@ -259,6 +200,7 @@ async def add_wish(event):
             await js.apiSaveWish(wish_text)
             input_box.value = ""
             await load_wishes()
+            js.alert("Glückwunsch erfolgreich gespeichert! 🎉")
         except Exception as e:
             js.alert(f"Fehler beim Speichern: {e}")
 
