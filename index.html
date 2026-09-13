@@ -15,6 +15,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            flex-direction: column;
         }
         .card {
             background: rgb(232, 0, 0);
@@ -24,6 +25,7 @@
             max-width: 550px;
             width: 100%;
             text-align: center;
+            box-sizing: border-box;
         }
         h1, h2, h3, p { color: #000; }
         .cake-img {
@@ -69,6 +71,25 @@
             font-size: 14px;
             color: #000;
             font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* Admin-Lösch-Button direkt an der Nachricht */
+        .admin-del-btn {
+            background: #d63031;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .admin-section {
+            margin-top: 15px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -89,15 +110,20 @@
             <h3>Alle Glückwünsche:</h3>
             <div id="wishesContent">Lade Wünsche...</div>
         </div>
+
+        <!-- Admin-Bereich zum sauberen Verwalten -->
+        <div class="admin-section">
+            <button onclick="clearAllWishes()" style="background: #2d3436; color: #ff7675; font-size: 12px; padding: 6px 10px;">🗑️ Alle Nachrichten komplett löschen</button>
+        </div>
     </div>
 
-    <!-- JavaScript Direkt-API (Garantierte Text-Ausgabe) -->
+    <!-- JavaScript API & Admin-Funktionen -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
         const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
 
-        async function fetchWishesText() {
+        async function fetchWishes() {
             try {
                 let res = await fetch(`${API_URL}?t=${Date.now()}`, {
                     headers: { "X-Master-Key": API_KEY }
@@ -105,11 +131,10 @@
                 let data = await res.json();
                 let rawList = data.record?.wishes || data.wishes || [];
                 
-                // Mappe alles brutal hart in einfache Strings, damit niemals [object Object] entsteht
-                return rawList.map(item => {
-                    if (typeof item === 'string') return item;
-                    if (item && typeof item === 'object') return item.text || item.wish || JSON.stringify(item);
-                    return String(item);
+                // Mappe sauber in Objekte mit Text, damit wir auch den Index zum Löschen wissen
+                return rawList.map((item, index) => {
+                    let text = typeof item === 'string' ? item : (item?.text || item?.wish || JSON.stringify(item));
+                    return { text: text, index: index };
                 });
             } catch (e) {
                 console.error(e);
@@ -118,26 +143,55 @@
         }
 
         async function saveWishText(text) {
-            let res = await fetch(API_URL, {
-                headers: { "X-Master-Key": API_KEY }
-            });
+            let res = await fetch(API_URL, { headers: { "X-Master-Key": API_KEY } });
             let data = await res.json();
             let rawList = data.record?.wishes || data.wishes || [];
             
-            // Konvertiere zu Strings für die Sicherheit
-            let list = rawList.map(item => (typeof item === 'object' && item !== null) ? (item.text || '') : String(item));
-            
-            // Neuen Text vorne anfügen (als reines Objekt, aber beim Lesen sauber extrahiert)
+            let list = rawList.map(item => typeof item === 'string' ? { text: item } : item);
             list.unshift({ text: text });
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Master-Key": API_KEY
-                },
+                headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
                 body: JSON.stringify({ wishes: list })
             });
+        }
+
+        // Einzelnen Wunsch anhand des Index löschen
+        async function deleteSingleWish(indexToDelete) {
+            if (!confirm("Möchtest du diesen Eintrag wirklich löschen?")) return;
+            try {
+                let res = await fetch(API_URL, { headers: { "X-Master-Key": API_KEY } });
+                let data = await res.json();
+                let rawList = data.record?.wishes || data.wishes || [];
+                
+                rawList.splice(indexToDelete, 1);
+
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+                    body: JSON.stringify({ wishes: rawList })
+                });
+                location.reload(); // Seite neu laden, um das Ergebnis zu sehen
+            } catch (e) {
+                alert("Fehler beim Löschen: " + e);
+            }
+        }
+
+        // Alle Wünsche auf einmal leeren
+        async function clearAllWishes() {
+            if (!confirm("ACHTUNG: Möchtest du WIRKLICH ALLE Nachrichten unwiderruflich löschen?")) return;
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+                    body: JSON.stringify({ wishes: [] })
+                });
+                alert("Alle Nachrichten wurden erfolgreich gelöscht!");
+                location.reload();
+            } catch (e) {
+                alert("Fehler: " + e);
+            }
         }
     </script>
 
@@ -152,17 +206,36 @@ async def load_ui():
     if not container:
         return
     try:
-        texts = await js.fetchWishesText()
+        wishes = await js.fetchWishes()
         container.innerHTML = ""
         
-        if not texts or len(texts) == 0:
+        if not wishes or len(wishes) == 0:
             container.innerHTML = "<p style='color: #000; font-style: italic;'>Noch keine Wünsche da. Sei der Erste! 🎈</p>"
             return
 
-        for t in texts:
+        for w in wishes:
+            text = w.text
+            idx = w.index
+            
             div = document.createElement("div")
             div.className = "wish-item"
-            div.innerText = f"🎂 {str(t)}"
+            
+            span = document.createElement("span")
+            span.innerText = f"🎂 {text}"
+            div.appendChild(span)
+            
+            # Dezenter Admin-Löschbutton direkt an jeder Nachricht
+            del_btn = document.createElement("button")
+            del_btn.className = "admin-del-btn"
+            del_btn.innerText = "X"
+            del_btn.title = "Diesen Eintrag löschen"
+            
+            def make_del(i):
+                return lambda event: asyncio.ensure_future(js.deleteSingleWish(i))
+                
+            del_btn.onclick = make_del(idx)
+            div.appendChild(del_btn)
+            
             container.appendChild(div)
     except Exception as e:
         container.innerHTML = f"Fehler: {e}"
