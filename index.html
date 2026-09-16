@@ -16,7 +16,78 @@
             min-height: 100vh;
             margin: 0;
             flex-direction: column;
+            overflow-x: hidden;
         }
+
+        /* --- INTRO VIDEO SCREEN (Querformat-Erzwingung) --- */
+        #introScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* Container der das Video zwingend im Querformat hält via Drehung bei Bedarf */
+        .video-wrapper {
+            position: relative;
+            width: 85vw;
+            max-width: 800px;
+            aspect-ratio: 16 / 9;
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(255,0,0,0.4);
+        }
+
+        #introVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Der Button der nach 7 Sekunden erscheint */
+        #skipToIntroBtn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: #e80000;
+            color: white;
+            border: 2px solid #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none; /* Anfänglich unsichtbar */
+            z-index: 10000;
+            animation: pulseBtn 1.5s infinite;
+        }
+
+        @keyframes pulseBtn {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- HAUPTKARTE (Anfangs versteckt, bis Intro vorbei oder übersprungen) --- */
+        #mainCardContainer {
+            display: none;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
         .card {
             background: rgb(232, 0, 0);
             padding: 30px;
@@ -96,7 +167,6 @@
             justify-content: space-between;
             align-items: center;
         }
-        /* Container für Überschrift und Radio-Buttons oben */
         .header-container {
             display: flex;
             justify-content: space-between;
@@ -109,14 +179,12 @@
             text-align: left;
             font-size: 24px;
         }
-        /* Box für die Buttons untereinander rechts */
         .radio-buttons-wrapper {
             display: flex;
             flex-direction: column;
             gap: 8px;
             flex-shrink: 0;
         }
-        /* Kleine runde Buttons */
         .radio-btn {
             width: 42px;
             height: 42px;
@@ -139,48 +207,57 @@
 </head>
 <body>
 
-    <div class="card">
-        <!-- Header mit Überschrift links und Radio-Buttons rechts untereinander -->
-        <div class="header-container">
-            <h1>Alles Gute zum Geburtstag, Papa! 🎂</h1>
-            <div class="radio-buttons-wrapper">
-                <!-- 1. Liga Radio Button -->
-                <button id="radio1Btn" class="radio-btn" onclick="toggleRadio('liga1')" title="1. Liga Konferenz an/aus">
-                    ⚽1
-                </button>
-                <!-- 2. Liga Radio Button -->
-                <button id="radio2Btn" class="radio-btn" onclick="toggleRadio('liga2')" title="2. Liga Konferenz an/aus">
-                    ⚽2
-                </button>
-            </div>
+    <!-- INTRO-BEREICH MIT VIDEO -->
+    <div id="introScreen">
+        <div class="video-wrapper">
+            <!-- Trage hier den Pfad zu deinem Video ein (z.B. assets/video/papa.mp4) -->
+            <video id="introVideo" src="assets/video/intro.mp4" playsinline autoplay muted></video>
         </div>
+        <!-- Der Button der nach 7 Sekunden erscheint -->
+        <button id="skipToIntroBtn" onclick="goToMainCard()">Zur Hauptkarte ➔</button>
+    </div>
 
+    <!-- HAUPTKARTE (Gästebuch & Radio) -->
+    <div id="mainCardContainer">
+        <div class="card">
+            <div class="header-container">
+                <h1>Alles Gute zum Geburtstag, Papa! 🎂</h1>
+                <div class="radio-buttons-wrapper">
+                    <button id="radio1Btn" class="radio-btn" onclick="toggleRadio('liga1')" title="1. Liga Konferenz an/aus">⚽1</button>
+                    <button id="radio2Btn" class="radio-btn" onclick="toggleRadio('liga2')" title="2. Liga Konferenz an/aus">⚽2</button>
+                </div>
+            </div>
+
+<<<<<<< HEAD
         <img src="assets/pics/birthdaycake/birthdaycake.jpg" alt="Geburtstagstorte" class="cake-img">
         <h2>Der Countdown läuft! Nur noch 4 Jahre bis zur Rente... Lass dich Feiern und bleib Gesund!</h2>
+=======
+            <img src="assets/pics/birthdaycake/birthdaycake.jpg" alt="Geburtstagstorte" class="cake-img">
+            <h2>Der Countdown läuft! Nur noch 4 Jahre bis zur Rente... Lass dich feiern und bleib gesund!</h2>
+>>>>>>> 054278e (Radio Buttons hinzugefügt+introvideo)
 
-        <!-- Unsichtbare Audio-Streams für Sportschau Konferenzen -->
-        <audio id="streamLiga1" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga1konferenz/mp3/128/stream.mp3" preload="none"></audio>
-        <audio id="streamLiga2" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga2konferenz/mp3/128/stream.mp3" preload="none"></audio>
+            <audio id="streamLiga1" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga1konferenz/mp3/128/stream.mp3" preload="none"></audio>
+            <audio id="streamLiga2" src="https://dispatcher.rndfnk.com/wdr/sportschau/liga2konferenz/mp3/128/stream.mp3" preload="none"></audio>
 
-        <div>
-            <textarea id="wishInput" placeholder="Deine Glückwünsche für Peter_Werner R. (Papa)"></textarea>
-            <br>
-            <button id="sendBtn">Glückwunsch abschicken</button>
-        </div>
+            <div>
+                <textarea id="wishInput" placeholder="Deine Glückwünsche für Peter_Werner R. (Papa)"></textarea>
+                <br>
+                <button id="sendBtn">Glückwunsch abschicken</button>
+            </div>
 
-        <div class="wishes-container">
-            <h3>Alle Glückwünsche:</h3>
-            <div id="wishesContent">Lade Wünsche...</div>
-        </div>
+            <div class="wishes-container">
+                <h3>Alle Glückwünsche:</h3>
+                <div id="wishesContent">Lade Wünsche...</div>
+            </div>
 
-        <!-- Diskreter Admin-Zugang -->
-        <div class="admin-section">
-            <button onclick="unlockAdmin()" style="background: transparent; color: #000; border: none; font-size: 11px; cursor: pointer; text-decoration: underline;">Admin-Modus</button>
-            <button id="clearAllBtn" class="admin-only" onclick="clearAllWishes()" style="background: #2d3436; color: #ff7675; font-size: 11px; padding: 5px 8px;">🗑️ Alle löschen</button>
+            <div class="admin-section">
+                <button onclick="unlockAdmin()" style="background: transparent; color: #000; border: none; font-size: 11px; cursor: pointer; text-decoration: underline;">Admin-Modus</button>
+                <button id="clearAllBtn" class="admin-only" onclick="clearAllWishes()" style="background: #2d3436; color: #ff7675; font-size: 11px; padding: 5px 8px;">🗑️ Alle löschen</button>
+            </div>
         </div>
     </div>
 
-    <!-- JavaScript API & Radio / Admin Steuerung -->
+    <!-- JavaScript Steuerung für Intro & Funktionen -->
     <script>
         const BIN_ID = "6aa640e9ffd5d16053008348";
         const API_KEY = "$2a$10$.s1t/9O62oQZZnpvpjzIhu81NrRa5Kn8kMoJFTMgj2dnBTPS.54da";
@@ -188,6 +265,27 @@
         
         let currentActiveAudio = null;
         let currentActiveBtn = null;
+
+        // Timer für das Einblenden des Buttons nach 7 Sekunden
+        const videoElement = document.getElementById('introVideo');
+        
+        videoElement.addEventListener('timeupdate', function() {
+            if (videoElement.currentTime >= 7) {
+                document.getElementById('skipToIntroBtn').style.display = 'block';
+            }
+        });
+
+        // Falls das Video kürzer als 7 Sekunden ist, Button direkt am Ende anzeigen
+        videoElement.addEventListener('ended', function() {
+            document.getElementById('skipToIntroBtn').style.display = 'block';
+        });
+
+        // Funktion zum Wechseln zur Hauptkarte
+        function goToMainCard() {
+            videoElement.pause();
+            document.getElementById('introScreen').style.display = 'none';
+            document.getElementById('mainCardContainer').style.display = 'flex';
+        }
 
         function toggleRadio(liga) {
             let audioId = liga === 'liga1' ? 'streamLiga1' : 'streamLiga2';
@@ -204,16 +302,16 @@
 
             if (audio.paused) {
                 audio.play().then(() => {
-                    btn.style.backgroundColor = "#27ae60"; // Grün wenn aktiv
+                    btn.style.backgroundColor = "#27ae60";
                     currentActiveAudio = audio;
                     currentActiveBtn = btn;
                 }).catch(e => {
-                    alert("Stream konnte nicht gestartet werden (evtl. sendet die Konferenz gerade nicht live).");
+                    alert("Stream konnte nicht gestartet werden.");
                 });
             } else {
                 audio.pause();
                 audio.currentTime = 0;
-                btn.style.backgroundColor = "#e80000"; // Wieder Rot
+                btn.style.backgroundColor = "#e80000";
                 currentActiveAudio = null;
                 currentActiveBtn = null;
             }
