@@ -226,7 +226,6 @@
     <!-- INTRO-BEREICH MIT VIDEO -->
     <div id="introScreen">
         <div class="video-wrapper">
-            <!-- Der Button zum Starten mit Ton -->
             <button id="startAudioBtn" onclick="playVideoWithSound()">▶ Video mit Ton starten</button>
             <video id="introVideo" src="assets/video/intro.mp4" playsinline controls></video>
         </div>
@@ -281,10 +280,10 @@
         const skipBtn = document.getElementById('skipToIntroBtn');
 
         function playVideoWithSound() {
-            startBtn.style.display = 'none'; // Button ausblenden
-            videoElement.muted = false;     // Ton einschalten
-            videoElement.play();            // Video abspielen
-            skipBtn.style.display = 'block';// Überspringen-Button anzeigen
+            startBtn.style.display = 'none';
+            videoElement.muted = false;
+            videoElement.play();
+            skipBtn.style.display = 'block';
         }
 
         videoElement.addEventListener('ended', function() {
@@ -479,8 +478,6 @@ async def handle_click(event):
         box.value = ""
         await load_ui()
         js.alert("Gespeichert! 🎉")
-
-asyncio.ensure_future(init := lambda: None) # Dummy cleanup
 
 async def init():
     btn = document.getElementById("sendBtn")
