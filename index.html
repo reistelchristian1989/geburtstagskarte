@@ -19,7 +19,7 @@
             overflow-x: hidden;
         }
 
-        /* --- INTRO VIDEO SCREEN (Querformat-Erzwingung) --- */
+        /* --- INTRO VIDEO SCREEN --- */
         #introScreen {
             position: fixed;
             top: 0;
@@ -43,12 +43,31 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(255,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         #introVideo {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        /* Großer Start-Button der die Browser-Sperre umgeht */
+        #startAudioBtn {
+            position: absolute;
+            background-color: #e80000;
+            color: white;
+            border: 3px solid #fff;
+            padding: 20px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.8);
+            z-index: 10001;
+            animation: pulseBtn 1.5s infinite;
         }
 
         #skipToIntroBtn {
@@ -64,14 +83,13 @@
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: block; 
+            display: none; 
             z-index: 10000;
-            animation: pulseBtn 1.5s infinite;
         }
 
         @keyframes pulseBtn {
             0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.08); }
             100% { transform: scale(1); }
         }
 
@@ -205,11 +223,12 @@
 </head>
 <body>
 
-    <!-- INTRO-BEREICH MIT VIDEO (Startet direkt beim Aufruf) -->
+    <!-- INTRO-BEREICH MIT VIDEO -->
     <div id="introScreen">
         <div class="video-wrapper">
-            <!-- autoplay & muted sorgen dafür, dass es sofort beim Laden losgeht -->
-            <video id="introVideo" src="assets/video/intro.mp4" playsinline autoplay muted controls></video>
+            <!-- Der Button zum Starten mit Ton -->
+            <button id="startAudioBtn" onclick="playVideoWithSound()">▶ Video mit Ton starten</button>
+            <video id="introVideo" src="assets/video/intro.mp4" playsinline controls></video>
         </div>
         <button id="skipToIntroBtn" onclick="goToMainCard()">Zur Hauptkarte ➔</button>
     </div>
@@ -258,6 +277,19 @@
         let currentActiveBtn = null;
 
         const videoElement = document.getElementById('introVideo');
+        const startBtn = document.getElementById('startAudioBtn');
+        const skipBtn = document.getElementById('skipToIntroBtn');
+
+        function playVideoWithSound() {
+            startBtn.style.display = 'none'; // Button ausblenden
+            videoElement.muted = false;     // Ton einschalten
+            videoElement.play();            // Video abspielen
+            skipBtn.style.display = 'block';// Überspringen-Button anzeigen
+        }
+
+        videoElement.addEventListener('ended', function() {
+            skipBtn.style.display = 'block';
+        });
 
         function goToMainCard() {
             videoElement.pause();
@@ -447,6 +479,8 @@ async def handle_click(event):
         box.value = ""
         await load_ui()
         js.alert("Gespeichert! 🎉")
+
+asyncio.ensure_future(init := lambda: None) # Dummy cleanup
 
 async def init():
     btn = document.getElementById("sendBtn")
